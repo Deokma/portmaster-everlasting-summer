@@ -1,0 +1,21 @@
+# The player's game files and mods never go into the repository.
+port/everlastingsummer/game/*
+!port/everlastingsummer/game/README.txt
+port/everlastingsummer/workshop/*
+!port/everlastingsummer/workshop/README.txt
+
+# Written on the handheld at run time.
+port/everlastingsummer/renpy/
+port/everlastingsummer/conf/
+port/everlastingsummer/logs/
+port/everlastingsummer/tl_parked/
+port/everlastingsummer/modmanager/font.ttf
+port/everlastingsummer/modmanager/saves/
+port/everlastingsummer/modmanager/cache/
+port/everlastingsummer/modmanager/*.rpyc
+port/everlastingsummer/log.txt
+
+# Build output and Python leftovers.
+dist/
+__pycache__/
+*.pyc

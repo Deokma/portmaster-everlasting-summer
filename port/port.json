@@ -1,0 +1,42 @@
+{
+  "version": 4,
+  "name": "everlastingsummer.zip",
+  "items": [
+    "Everlasting Summer.sh",
+    "everlastingsummer"
+  ],
+  "items_opt": [],
+  "attr": {
+    "title": "Everlasting Summer",
+    "porter": [
+      "Deokma"
+    ],
+    "desc": "A visual novel about a week in a Soviet pioneer camp, where Semyon wakes up after falling asleep on a winter bus.",
+    "desc_md": null,
+    "inst": "Get the game for free on Steam. Run tools/prepare_gamefiles.py on your PC against the install folder, or copy the contents of its game folder into ports/everlastingsummer/game.",
+    "inst_md": "Get the game for free on [Steam](https://store.steampowered.com/app/331470/). Run `tools/prepare_gamefiles.py` on a PC against the install folder (recommended, shrinks the assets for 640x480 screens), or copy the contents of its `game/` folder into `ports/everlastingsummer/game/`.",
+    "genres": [
+      "visual novel"
+    ],
+    "image": null,
+    "rtr": false,
+    "exp": true,
+    "runtime": [
+      "renpy_8.3.4.squashfs"
+    ],
+    "store": [
+      {
+        "name": "Steam",
+        "url": "https://store.steampowered.com/app/331470/"
+      }
+    ],
+    "availability": "free",
+    "reqs": [
+      "!lowres"
+    ],
+    "arch": [
+      "aarch64"
+    ],
+    "min_glibc": ""
+  }
+}

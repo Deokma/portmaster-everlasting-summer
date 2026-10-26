@@ -1,0 +1,4 @@
+# The launchers and scripts run on Linux handhelds: always check out with LF endings.
+* text=auto eol=lf
+*.png binary
+*.jpg binary

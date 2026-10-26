@@ -1,0 +1,32 @@
+back = esc
+start = esc
+
+a = enter
+b = esc
+x = h
+y = tab
+
+l1 = pageup
+r1 = pagedown
+l2 = mouse_left
+r2 = lctrl
+
+up = up
+down = down
+left = left
+right = right
+
+left_analog_up = mouse_movement_up
+left_analog_down = mouse_movement_down
+left_analog_left = mouse_movement_left
+left_analog_right = mouse_movement_right
+l3 = mouse_left
+
+right_analog_up = up
+right_analog_down = down
+right_analog_left = left
+right_analog_right = right
+r3 = mouse_right
+
+mouse_scale = 6144
+mouse_delay = 16
