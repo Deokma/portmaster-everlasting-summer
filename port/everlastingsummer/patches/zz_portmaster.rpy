@@ -31,6 +31,11 @@ python early hide:
 
     im_.portmaster_shrunk = shrunk
 
+    # The runtime's compiled gl2 code reads config.mipmap, which its own 8.3.4 Python
+    # side never defines. Shrunk images draw 1:1, so they don't need mipmaps.
+    if not hasattr(renpy.config, "mipmap"):
+        renpy.config.mipmap = not shrunk
+
     # The credits build im.Map ramps from chr() strings, which were bytes in Python 2.
     map_load = im_.Map.load
 
@@ -108,6 +113,15 @@ python early hide:
         im_.Scale.load = scale_load
 
 
+init -999 python:
+    import os
+
+    # PortMaster's renpy_8.3.4 runtime ships with GL off, so every port falls back to
+    # Ren'Py's slow software renderer. The Mali GLES2 driver handles gl2 fine;
+    # ES_RENDERER=sw in the launcher restores the runtime's default.
+    config.gl_enable = os.environ.get("ES_RENDERER", "gl") != "sw"
+
+
 init 999 python hide:
     import renpy.display.im as im_
 
@@ -151,10 +165,15 @@ init 999 python hide:
 
 
 init 1500 python:
+    import os
 
     # gptokeyb turns the controls into keys and a mouse, so Ren'Py's own gamepad
     # handling stays off to avoid double input.
     _preferences.pad_enabled = False
+
+    # Text laid out for 1080p comes out about 7px tall on a 640x360 screen. The launcher
+    # sets ES_TEXT_SCALE; Ren'Py multiplies every font size by this preference.
+    _preferences.font_size = float(os.environ.get("ES_TEXT_SCALE", "1.0"))
 
     # The game asks for a 1000-step rollback and Ren'Py's desktop cache sizes; these are
     # Ren'Py's defaults sized down for 1 GB of shared RAM.

@@ -8,6 +8,8 @@ caches and, unless asked, your saves), then optionally:
                   portmaster_shrink.txt so the port's zz_portmaster.rpy draws them at
                   their original size.
   --video-height  re-encode video/opening.ogv (1280x720 Theora) at this height.
+  --languages     keep only these translations' dialogue (most of the script data;
+                  Ren'Py loads every language at startup).
 
 Needs Python 3.8+ and Pillow; the video step needs ffmpeg on PATH.
 
@@ -154,13 +156,20 @@ def transcode_video(src, dst, height):
     subprocess.run(cmd, check=True)
 
 
-def copy_tree(src_game, out, with_saves, skip_files):
+def copy_tree(src_game, out, with_saves, skip_files, languages):
     copied = 0
     for dirpath, dirnames, filenames in os.walk(src_game):
         rel = os.path.relpath(dirpath, src_game)
-        top = rel.split(os.sep)[0]
+        parts = rel.split(os.sep)
+        top = parts[0]
 
         if top in SKIP_DIRS or (top == "saves" and not with_saves):
+            dirnames[:] = []
+            continue
+
+        # tl/<language>/scenario holds that language's dialogue; its menu strings
+        # (tl/<language>/*.rpyc) are tiny and always kept.
+        if languages is not None and parts[:1] == ["tl"] and parts[2:3] == ["scenario"] and parts[1] not in languages:
             dirnames[:] = []
             continue
 
@@ -182,6 +191,9 @@ def main():
     ap.add_argument("--out", default=DEFAULT_OUT, help="output game folder (default: port/everlastingsummer/game)")
     ap.add_argument("--shrink", type=float, default=3, help="image downscale factor, 0 to keep originals (default 3)")
     ap.add_argument("--video-height", type=int, default=360, help="opening video height, 0 to keep original (default 360)")
+    ap.add_argument("--languages", default="all",
+                    help="translated dialogue to keep, e.g. english,german; 'none' keeps only the original "
+                         "Russian. Each language costs about 6s of startup and 40 MB of RAM on the handheld (default all)")
     ap.add_argument("--with-saves", action="store_true", help="also copy game/saves (Ren'Py 7 saves, may not load)")
     ap.add_argument("--jobs", type=int, default=os.cpu_count(), help="parallel image workers")
     args = ap.parse_args()
@@ -202,8 +214,12 @@ def main():
     if args.video_height and os.path.isfile(os.path.join(src_game, video)):
         skip.add(video)
 
+    languages = None
+    if args.languages != "all":
+        languages = {l.strip().lower() for l in args.languages.split(",") if l.strip() and l.strip().lower() != "none"}
+
     print("Copying game files to %s" % out)
-    copied = copy_tree(src_game, out, args.with_saves, skip)
+    copied = copy_tree(src_game, out, args.with_saves, skip, languages)
     print("  %.0f MB copied" % (copied / 1e6))
 
     if args.shrink:

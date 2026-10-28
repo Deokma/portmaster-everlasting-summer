@@ -61,7 +61,15 @@ sleep 2
 $ESUDO mount --bind "$gamefiles" "$renpydir/game"
 
 # Exports
+# Text size multiplier: 1.0 is the PC size, which is about 7px tall on a 640x480 screen.
+export ES_TEXT_SCALE="${ES_TEXT_SCALE:-1.5}"
+# gles2 renders on the GPU; sw is the runtime's default software renderer.
+export ES_RENDERER="${ES_RENDERER:-gles2}"
+export RENPY_RENDERER="$ES_RENDERER"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+# Ren'Py's base folder is the read-only runtime, so send its log.txt / traceback.txt here.
+mkdir -p "$GAMEDIR/logs"
+export RENPY_LOG_BASE="$GAMEDIR/logs"
 export PYTHONHOME="$renpydir"
 export PYTHONPATH="$renpydir/lib/python3.9"
 
