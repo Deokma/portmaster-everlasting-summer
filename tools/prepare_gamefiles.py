@@ -145,6 +145,19 @@ def rebuild_archive(src, dst, factor, jobs):
     return shrunk
 
 
+def extract_entry(rpa, name, dst):
+    """Copies one file out of an archive, untouched."""
+
+    for off, length, entry in read_rpa_index(rpa):
+        if entry == name:
+            with open(rpa, "rb") as fin, open(dst, "wb") as fout:
+                fin.seek(off)
+                fout.write(fin.read(length))
+            return True
+
+    return False
+
+
 def transcode_video(src, dst, height):
     cmd = [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", src,
@@ -228,6 +241,10 @@ def main():
         with open(os.path.join(out, "portmaster_shrink.txt"), "w", encoding="utf-8", newline="\n") as f:
             f.write("%r\n" % (1.0 / args.shrink))
             f.write("\n".join(sorted(shrunk)) + "\n")
+
+    # The port draws the mouse cursor itself (handheld GPUs have no hardware cursor);
+    # this full-size copy keeps it sharp when the archive's images are shrunk.
+    extract_entry(os.path.join(src_game, "archive.rpa"), "images/misc/mouse/1.png", os.path.join(out, "portmaster_cursor.png"))
 
     if video in skip:
         print("Re-encoding opening video at %dp" % args.video_height)

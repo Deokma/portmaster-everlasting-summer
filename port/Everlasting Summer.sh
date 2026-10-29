@@ -63,6 +63,8 @@ $ESUDO mount --bind "$gamefiles" "$renpydir/game"
 # Exports
 # Text size multiplier: 1.0 is the PC size, which is about 7px tall on a 640x480 screen.
 export ES_TEXT_SCALE="${ES_TEXT_SCALE:-1.5}"
+# Software mouse cursor size (1.5 = about 20px tall); 0 uses the hardware cursor.
+export ES_CURSOR_SCALE="${ES_CURSOR_SCALE:-1.5}"
 # gles2 renders on the GPU; sw is the runtime's default software renderer.
 export ES_RENDERER="${ES_RENDERER:-gles2}"
 export RENPY_RENDERER="$ES_RENDERER"

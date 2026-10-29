@@ -50,6 +50,21 @@ python early hide:
 
     im_.Map.load = portmaster_map_load
 
+    # The game's settings, history, music room and mod list scroll only with a mouse
+    # wheel, and options scrolled out of view can't take D-pad focus. Let PageUp and
+    # PageDown (L1 / R1 through gptokeyb) page every wheel-scrolled viewport.
+    import renpy.display.viewport as viewport_
+
+    viewport_init = viewport_.Viewport.__init__
+
+    def portmaster_viewport_init(self, *args, **properties):
+        viewport_init(self, *args, **properties)
+
+        if self.mousewheel:
+            self.pagekeys = True
+
+    viewport_.Viewport.__init__ = portmaster_viewport_init
+
     if shrunk:
 
         image_init = im_.Image.__init__
@@ -174,6 +189,21 @@ init 1500 python:
     # Text laid out for 1080p comes out about 7px tall on a 640x360 screen. The launcher
     # sets ES_TEXT_SCALE; Ren'Py multiplies every font size by this preference.
     _preferences.font_size = float(os.environ.get("ES_TEXT_SCALE", "1.0"))
+
+    # Handheld display drivers have no hardware cursor, so the gptokeyb mouse was
+    # invisible. Ren'Py draws the game's cursor into the frame instead, scaled by
+    # ES_CURSOR_SCALE (0 keeps the hardware cursor).
+    cursor_scale = float(os.environ.get("ES_CURSOR_SCALE", "0"))
+
+    if cursor_scale and config.mouse:
+        cursor, cursor_x, cursor_y = config.mouse["default"][0]
+
+        # Full-size copy written by prepare_gamefiles.py, so shrinking doesn't blur it.
+        if renpy.loadable("portmaster_cursor.png"):
+            cursor = "portmaster_cursor.png"
+
+        config.mouse = None
+        config.mouse_displayable = MouseDisplayable(Transform(cursor, zoom=cursor_scale), cursor_x * cursor_scale, cursor_y * cursor_scale)
 
     # The game asks for a 1000-step rollback and Ren'Py's desktop cache sizes; these are
     # Ren'Py's defaults sized down for 1 GB of shared RAM.
