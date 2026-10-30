@@ -41,8 +41,8 @@ RPA_KEY = 0x42424242
 def read_rpa_index(path):
     with open(path, "rb") as f:
         header = f.readline().decode("latin1").split()
-        if header[0] != "RPA-3.0":
-            sys.exit("%s: unsupported archive format %r" % (path, header[0]))
+        if not header or header[0] != "RPA-3.0":
+            raise ValueError("%s: unsupported archive format %r" % (path, header[:1]))
         offset, key = int(header[1], 16), int(header[2], 16)
         f.seek(offset)
         index = pickle.loads(zlib.decompress(f.read()), encoding="bytes")
@@ -52,7 +52,7 @@ def read_rpa_index(path):
         if isinstance(name, bytes):
             name = name.decode("utf-8")
         if len(parts) != 1 or (len(parts[0]) > 2 and parts[0][2]):
-            sys.exit("%s: split or prefixed archive entries are not supported (%s)" % (path, name))
+            raise ValueError("%s: split or prefixed archive entries are not supported (%s)" % (path, name))
         entries.append((parts[0][0] ^ key, parts[0][1] ^ key, name))
 
     entries.sort()
@@ -237,7 +237,10 @@ def main():
 
     if args.shrink:
         print("Shrinking images in archive.rpa by %gx" % args.shrink)
-        shrunk = rebuild_archive(os.path.join(src_game, "archive.rpa"), os.path.join(out, "archive.rpa"), args.shrink, args.jobs)
+        try:
+            shrunk = rebuild_archive(os.path.join(src_game, "archive.rpa"), os.path.join(out, "archive.rpa"), args.shrink, args.jobs)
+        except ValueError as e:
+            sys.exit(str(e))
         with open(os.path.join(out, "portmaster_shrink.txt"), "w", encoding="utf-8", newline="\n") as f:
             f.write("%r\n" % (1.0 / args.shrink))
             f.write("\n".join(sorted(shrunk)) + "\n")
@@ -245,6 +248,13 @@ def main():
     # The port draws the mouse cursor itself (handheld GPUs have no hardware cursor);
     # this full-size copy keeps it sharp when the archive's images are shrunk.
     extract_entry(os.path.join(src_game, "archive.rpa"), "images/misc/mouse/1.png", os.path.join(out, "portmaster_cursor.png"))
+
+    # Ren'Py 7 bundled DejaVuSans in renpy/common and Workshop mods name it directly;
+    # Ren'Py 8 no longer ships it, so it goes in game/ where they'll find it.
+    for font in ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf"):
+        src = os.path.join(args.install, "renpy", "common", font)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(out, font))
 
     if video in skip:
         print("Re-encoding opening video at %dp" % args.video_height)

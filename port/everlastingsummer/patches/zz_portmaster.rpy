@@ -6,28 +6,28 @@
 ## Ren'Py for a 1 GB handheld. The launcher copies it into game/ on every start.
 
 python early hide:
+    import os
     import renpy.display.im as im_
 
-    # prepare_gamefiles.py --shrink writes this manifest when it downscales the images
-    # in archive.rpa. Listed images get a fractional oversample, so they keep their
+    # prepare_gamefiles.py --shrink writes this manifest when it downscales images: one
+    # in game/ for archive.rpa, one in each Workshop mod folder the launcher adds to the
+    # search path. Listed images get a fractional oversample, so they keep their
     # 1920x1080-space size on screen while holding a fraction of the pixels.
     shrunk = { }
 
-    try:
-        f = renpy.loader.load("portmaster_shrink.txt")
+    for root in renpy.config.searchpath:
         try:
-            lines = f.read().decode("utf-8").splitlines()
-        finally:
-            f.close()
+            with open(os.path.join(root, "portmaster_shrink.txt"), "rb") as f:
+                lines = f.read().decode("utf-8").splitlines()
 
-        oversample = float(lines[0])
+            oversample = float(lines[0])
 
-        for name in lines[1:]:
-            if name:
-                shrunk[name.lower()] = oversample
+            for name in lines[1:]:
+                if name:
+                    shrunk.setdefault(name.lower(), oversample)
 
-    except Exception:
-        shrunk = { }
+        except Exception:
+            pass
 
     im_.portmaster_shrunk = shrunk
 
@@ -49,6 +49,20 @@ python early hide:
         return map_load(self)
 
     im_.Map.load = portmaster_map_load
+
+    # Workshop mods are Python 2 code that indexes d.keys()[0] and the like; Python 3
+    # returns views. Dicts made by game code are RevertableDicts, so hand them back
+    # RevertableLists, which is what Python 2 gave and what rollback and saves expect.
+    # (In the store, `dict` is RevertableDict itself, so call the builtin's methods.)
+    import builtins
+    import renpy.revertable as revertable_
+
+    RevertableList = revertable_.RevertableList
+    pydict = builtins.dict
+
+    revertable_.RevertableDict.keys = lambda self: RevertableList(pydict.keys(self))
+    revertable_.RevertableDict.values = lambda self: RevertableList(pydict.values(self))
+    revertable_.RevertableDict.items = lambda self: RevertableList(pydict.items(self))
 
     # The game's settings, history, music room and mod list scroll only with a mouse
     # wheel, and options scrolled out of view can't take D-pad focus. Let PageUp and
@@ -128,6 +142,16 @@ python early hide:
         im_.Scale.load = scale_load
 
 
+python early:
+    # Python 2 builtins that Workshop mods use and Ren'Py 8's store doesn't define.
+    import functools as _portmaster_functools
+
+    xrange = range
+    unichr = chr
+    long = int
+    reduce = _portmaster_functools.reduce
+
+
 init -999 python:
     import os
 
@@ -185,6 +209,10 @@ init 1500 python:
     # gptokeyb turns the controls into keys and a mouse, so Ren'Py's own gamepad
     # handling stays off to avoid double input.
     _preferences.pad_enabled = False
+
+    # Some Workshop mods ship with developer mode on; Ren'Py would then load its
+    # _developer tools at init 1700, which the runtime doesn't include.
+    config.developer = False
 
     # Text laid out for 1080p comes out about 7px tall on a 640x360 screen. The launcher
     # sets ES_TEXT_SCALE; Ren'Py multiplies every font size by this preference.

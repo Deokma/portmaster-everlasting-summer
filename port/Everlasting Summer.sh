@@ -22,6 +22,7 @@ runtime="renpy_8.3.4"
 renpydir="$GAMEDIR/renpy"
 gamefiles="$GAMEDIR/game"
 renpy_runtime="$controlfolder/libs/${runtime}.squashfs"
+workshop="$GAMEDIR/workshop"
 
 cd "$GAMEDIR"
 > "$GAMEDIR/log.txt" && exec > >(tee "$GAMEDIR/log.txt") 2>&1
@@ -43,9 +44,34 @@ if [ ! -f "$renpy_runtime" ]; then
   $ESUDO $controlfolder/harbourmaster --quiet --no-check runtime_check "${runtime}.squashfs"
 fi
 
+mkdir -p "$workshop"
+
 # The game ships for Ren'Py 7.4 (Python 2); this file adapts it to the Ren'Py 8 runtime.
 cmp -s "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy" || \
   cp -f "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy"
+
+# Workshop mods: every folder dropped into workshop/ (a copy of a Steam
+# steamapps/workshop/content/331470/<id> folder) becomes an extra game root, the way
+# the Steam build loads them. ES_MODS overrides with an explicit list of folders.
+# (Mods made for game/mods/ on a PC go in game/mods/ here too and always load.)
+modroots=""
+moddirs=()
+add_mod() {
+  [ -d "$workshop/$1" ] || return
+  modroots="${modroots:+$modroots::}$workshop/$1"
+  moddirs+=("$workshop/$1")
+}
+if [ -n "${ES_MODS+set}" ]; then
+  for mod in $ES_MODS; do add_mod "$mod"; done
+else
+  for dir in "$workshop"/*/; do
+    mod="$(basename "$dir")"
+    case "$mod" in .*|_*|"*") continue ;; esac
+    add_mod "$mod"
+  done
+fi
+[ -n "$modroots" ] && export RENPY_SEARCHPATH="$modroots"
+[ -d "$gamefiles/mods" ] && moddirs+=("$gamefiles/mods")
 
 # Savedata setup: the game keeps saves in game/saves, Ren'Py 8 keeps save tokens in ~/.renpy
 mkdir -p "$GAMEDIR/conf"
@@ -74,6 +100,10 @@ mkdir -p "$GAMEDIR/logs"
 export RENPY_LOG_BASE="$GAMEDIR/logs"
 export PYTHONHOME="$renpydir"
 export PYTHONPATH="$renpydir/lib/python3.9"
+
+# Ren'Py parses mod scripts before the port's patch runs, so Ren'Py 7 syntax that 8
+# rejects is fixed here, with the runtime's Python, in new or changed .rpy files.
+[ ${#moddirs[@]} -gt 0 ] && "$renpydir/lib/py3-linux-aarch64/python" "$GAMEDIR/patches/fix_mods.py" "${moddirs[@]}"
 
 # If using gl4es
 if [ -f "${controlfolder}/libgl_${CFW_NAME}.txt" ]; then
