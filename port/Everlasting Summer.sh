@@ -1,6 +1,7 @@
 #!/bin/bash
 
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+launch_xdg_data_home="$XDG_DATA_HOME"
 
 if [ -d "/opt/system/Tools/PortMaster/" ]; then
   controlfolder="/opt/system/Tools/PortMaster"
@@ -24,6 +25,10 @@ gamefiles="$GAMEDIR/game"
 renpy_runtime="$controlfolder/libs/${runtime}.squashfs"
 workshop="$GAMEDIR/workshop"
 
+# ES_APP=mods (set by "Everlasting Summer - Mod manager.sh") runs the small mod
+# manager in modmanager/ on the same runtime instead of the game.
+[ "$ES_APP" = "mods" ] && gamefiles="$GAMEDIR/modmanager"
+
 cd "$GAMEDIR"
 > "$GAMEDIR/log.txt" && exec > >(tee "$GAMEDIR/log.txt") 2>&1
 
@@ -46,32 +51,40 @@ fi
 
 mkdir -p "$workshop"
 
-# The game ships for Ren'Py 7.4 (Python 2); this file adapts it to the Ren'Py 8 runtime.
-cmp -s "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy" || \
-  cp -f "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy"
-
-# Workshop mods: every folder dropped into workshop/ (a copy of a Steam
-# steamapps/workshop/content/331470/<id> folder) becomes an extra game root, the way
-# the Steam build loads them. ES_MODS overrides with an explicit list of folders.
-# (Mods made for game/mods/ on a PC go in game/mods/ here too and always load.)
-modroots=""
-moddirs=()
-add_mod() {
-  [ -d "$workshop/$1" ] || return
-  modroots="${modroots:+$modroots::}$workshop/$1"
-  moddirs+=("$workshop/$1")
-}
-if [ -n "${ES_MODS+set}" ]; then
-  for mod in $ES_MODS; do add_mod "$mod"; done
+if [ "$ES_APP" = "mods" ]; then
+  # The runtime ships no fonts; the manager borrows the one the game build includes.
+  [ -f "$gamefiles/DejaVuSans.ttf" ] || cp -f "$GAMEDIR/game/DejaVuSans.ttf" "$gamefiles/" 2>/dev/null
+  export ES_WORKSHOP="$workshop"
 else
-  for dir in "$workshop"/*/; do
-    mod="$(basename "$dir")"
-    case "$mod" in .*|_*|"*") continue ;; esac
-    add_mod "$mod"
-  done
+  # The game ships for Ren'Py 7.4 (Python 2); this file adapts it to the Ren'Py 8 runtime.
+  cmp -s "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy" || \
+    cp -f "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy"
+
+  # Workshop mods: every folder dropped into workshop/ (a copy of a Steam
+  # steamapps/workshop/content/331470/<id> folder) becomes an extra game root, the way
+  # the Steam build loads them, unless the mod manager listed it in
+  # workshop/disabled.txt. ES_MODS overrides with an explicit list of folders.
+  # (Mods made for game/mods/ on a PC go in game/mods/ here too and always load.)
+  modroots=""
+  moddirs=()
+  add_mod() {
+    [ -d "$workshop/$1" ] || return
+    modroots="${modroots:+$modroots::}$workshop/$1"
+    moddirs+=("$workshop/$1")
+  }
+  if [ -n "${ES_MODS+set}" ]; then
+    for mod in $ES_MODS; do add_mod "$mod"; done
+  else
+    for dir in "$workshop"/*/; do
+      mod="$(basename "$dir")"
+      case "$mod" in .*|_*|"*") continue ;; esac
+      [ -f "$workshop/disabled.txt" ] && tr -d '\r' < "$workshop/disabled.txt" | grep -qxF "$mod" && continue
+      add_mod "$mod"
+    done
+  fi
+  [ -n "$modroots" ] && export RENPY_SEARCHPATH="$modroots"
+  [ -d "$gamefiles/mods" ] && moddirs+=("$gamefiles/mods")
 fi
-[ -n "$modroots" ] && export RENPY_SEARCHPATH="$modroots"
-[ -d "$gamefiles/mods" ] && moddirs+=("$gamefiles/mods")
 
 # Savedata setup: the game keeps saves in game/saves, Ren'Py 8 keeps save tokens in ~/.renpy
 mkdir -p "$GAMEDIR/conf"
@@ -122,3 +135,13 @@ if [[ "$PM_CAN_MOUNT" != "N" ]]; then
 fi
 
 pm_finish
+
+# The mod manager's "Play" leaves this flag: start the game with the new mod list.
+if [ "$ES_APP" = "mods" ] && [ -f "$workshop/.play" ]; then
+  rm -f "$workshop/.play"
+  # Start clean: PortMaster finds its folder through XDG_DATA_HOME, and its funcs.txt and
+  # device_info.txt skip loading when their *_VERSION markers are already exported.
+  export XDG_DATA_HOME="$launch_xdg_data_home"
+  unset RENPY_SEARCHPATH PM_FUNCS_VERSION DEVICE_INFO_VERSION
+  ES_APP=game exec "$0"
+fi
