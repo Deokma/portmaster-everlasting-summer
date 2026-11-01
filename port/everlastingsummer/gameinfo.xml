@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<gameList>
+  <game>
+    <path>./Everlasting Summer.sh</path>
+    <name>Everlasting Summer</name>
+    <desc>A visual novel about a week in a Soviet pioneer camp, where Semyon wakes up after falling asleep on a winter bus.</desc>
+    <releasedate>20131221T000000</releasedate>
+    <developer>Soviet Games</developer>
+    <publisher>Soviet Games</publisher>
+    <genre>Visual Novel</genre>
+    <image>./everlastingsummer/screenshot.png</image>
+    <thumbnail>./everlastingsummer/cover.jpg</thumbnail>
+  </game>
+  <game>
+    <path>./Everlasting Summer - Mod manager.sh</path>
+    <name>Everlasting Summer - Mod manager</name>
+    <desc>Switch the Steam Workshop mods in everlastingsummer/workshop on or off, or delete them.</desc>
+    <developer>Soviet Games</developer>
+    <publisher>Soviet Games</publisher>
+    <genre>Visual Novel</genre>
+    <thumbnail>./everlastingsummer/cover.jpg</thumbnail>
+  </game>
+</gameList>

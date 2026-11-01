@@ -1,0 +1,43 @@
+{
+  "version": 4,
+  "name": "everlastingsummer.zip",
+  "items": [
+    "Everlasting Summer.sh",
+    "Everlasting Summer - Mod manager.sh",
+    "everlastingsummer/"
+  ],
+  "items_opt": [],
+  "attr": {
+    "title": "Everlasting Summer",
+    "porter": [
+      "Deokma"
+    ],
+    "desc": "A visual novel about a week in a Soviet pioneer camp. Plays the Steam release with Workshop mod support.",
+    "desc_md": null,
+    "inst": "Get the game for free on Steam. Copy everything inside its game folder except mods, cache and saves into ports/everlastingsummer/game. Steam Workshop mod folders go in ports/everlastingsummer/workshop.",
+    "inst_md": "Get the game for free on [Steam](https://store.steampowered.com/app/331470/). Copy everything inside its `game` folder except `mods`, `cache` and `saves` into `ports/everlastingsummer/game/`. Optional: `everlastingsummer/tools/prepare_gamefiles.py` on a PC shrinks it for 640x480 handhelds. Steam Workshop mod folders go in `ports/everlastingsummer/workshop/`.",
+    "genres": [
+      "visual novel"
+    ],
+    "image": null,
+    "rtr": false,
+    "exp": true,
+    "runtime": [
+      "renpy_8.3.4.squashfs"
+    ],
+    "store": [
+      {
+        "name": "Steam",
+        "url": "https://store.steampowered.com/app/331470/"
+      }
+    ],
+    "availability": "free",
+    "reqs": [
+      "!lowres"
+    ],
+    "arch": [
+      "aarch64"
+    ],
+    "min_glibc": ""
+  }
+}

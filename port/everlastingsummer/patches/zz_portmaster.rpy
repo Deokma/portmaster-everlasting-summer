@@ -4,8 +4,14 @@
 ## shared Ren'Py 8.3.4 runtime, so this file patches the Python 3 incompatibilities,
 ## adds support for the downscaled assets made by tools/prepare_gamefiles.py, and tunes
 ## Ren'Py for a 1 GB handheld. The launcher copies it into game/ on every start.
+##
+## Each block imports the builtins its functions use: those functions run later, with
+## the store as their globals, and the game puts its own values there (script.rpyc does
+## `hour, min, sec = t.split(":")`).
 
 python early hide:
+    from builtins import getattr, int, isinstance, max, min, round, setattr, str, zip
+
     import os
     import renpy.display.im as im_
 
@@ -152,7 +158,9 @@ python early:
     reduce = _portmaster_functools.reduce
 
 
-init -999 python:
+init -999 python hide:
+    from builtins import int, max, min
+
     import os
 
     # PortMaster's renpy_8.3.4 runtime ships with GL off, so every port falls back to
@@ -160,8 +168,27 @@ init -999 python:
     # ES_RENDERER=sw in the launcher restores the runtime's default.
     config.gl_enable = os.environ.get("ES_RENDERER", "gl") != "sw"
 
+    # ES_ASPECT: how the 16:9 game uses a screen of another shape (the RG40XX H is 4:3).
+    # "fit" letterboxes it, "stretch" fills the screen by stretching it (33% taller on
+    # 4:3), "zoom" fills it at the right proportions by cutting off the sides.
+    def portmaster_view_size(width, height, mode=os.environ.get("ES_ASPECT", "fit")):
+        game_w, game_h = config.screen_width, config.screen_height
+        fit = min(1.0 * width / game_w, 1.0 * height / game_h)
+        fill = max(1.0 * width / game_w, 1.0 * height / game_h)
+
+        if mode == "stretch":
+            return width, height
+        elif mode == "zoom":
+            return int(game_w * fill), int(game_h * fill)
+        else:
+            return int(game_w * fit), int(game_h * fit)
+
+    config.adjust_view_size = portmaster_view_size
+
 
 init 999 python hide:
+    from builtins import enumerate, int, list, min, round
+
     import renpy.display.im as im_
 
     # pyclasses.rpyc defines its own crop that slices surfaces in 1920x1080 units.
@@ -203,7 +230,9 @@ init 999 python hide:
         store.lb__recolor = lb__recolor
 
 
-init 1500 python:
+init 1500 python hide:
+    from builtins import float
+
     import os
 
     # gptokeyb turns the controls into keys and a mouse, so Ren'Py's own gamepad
@@ -213,6 +242,13 @@ init 1500 python:
     # Some Workshop mods ship with developer mode on; Ren'Py would then load its
     # _developer tools at init 1700, which the runtime doesn't include.
     config.developer = False
+
+    # Mods name DejaVuSans, which Ren'Py 7 bundled and the Ren'Py 8 runtime doesn't.
+    # prepare_gamefiles.py copies it from the Steam install; for a game folder copied
+    # straight over, the game's own Calibri (with Cyrillic) stands in.
+    if not renpy.loadable("DejaVuSans.ttf") and renpy.loadable("fonts/calibri.ttf"):
+        for name, bold in (("DejaVuSans.ttf", False), ("DejaVuSans.ttf", True), ("DejaVuSans-Bold.ttf", False)):
+            config.font_replacement_map[(name, bold, False)] = ("fonts/calibrib.ttf" if bold or "Bold" in name else "fonts/calibri.ttf", False, False)
 
     # Text laid out for 1080p comes out about 7px tall on a 640x360 screen. The launcher
     # sets ES_TEXT_SCALE; Ren'Py multiplies every font size by this preference.
@@ -234,8 +270,9 @@ init 1500 python:
         config.mouse_displayable = MouseDisplayable(Transform(cursor, zoom=cursor_scale), cursor_x * cursor_scale, cursor_y * cursor_scale)
 
     # The game asks for a 1000-step rollback and Ren'Py's desktop cache sizes; these are
-    # Ren'Py's defaults sized down for 1 GB of shared RAM.
-    config.image_cache_size_mb = 64 if renpy.display.im.portmaster_shrunk else 160
+    # Ren'Py's defaults sized down for 1 GB of shared RAM. A game folder copied straight
+    # from Steam (full-size images) already uses about 650 MB on the RG40XX H.
+    config.image_cache_size_mb = 64 if renpy.display.im.portmaster_shrunk else 96
     config.predict_statements = 16
     config.rollback_length = 128
     config.hard_rollback_limit = 100

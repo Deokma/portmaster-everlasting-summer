@@ -2,14 +2,14 @@
 
 Optional: a Workshop folder copied straight from steamapps/workshop/content/331470/<id>
 into the port's workshop/ folder already works. This makes it load faster and use less
-RAM on a 1 GB handheld. For each mod it writes port/everlastingsummer/workshop/<id>/:
+RAM on a 1 GB handheld. For each mod it writes everlastingsummer/workshop/<id>/:
 images shrunk like the game's (with the mod's own portmaster_shrink.txt), videos
 re-encoded at 360p, Windows-only files dropped, Ren'Py 7 syntax fixed, and the mod's
 Workshop title in portmaster_mod.txt for the on-device mod manager.
 
 Needs Python 3.8+ and Pillow; video re-encoding needs ffmpeg and ffprobe on PATH.
 
-    python tools/prepare_mods.py "E:/SteamLibrary/steamapps/workshop/content/331470"
+    python everlastingsummer/tools/prepare_mods.py "E:/SteamLibrary/steamapps/workshop/content/331470"
 """
 
 import argparse
@@ -23,7 +23,7 @@ import urllib.parse
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PORT_DIR = os.path.join(HERE, "..", "port", "everlastingsummer")
+PORT_DIR = os.path.join(HERE, "..")
 DEFAULT_OUT = os.path.join(PORT_DIR, "workshop")
 
 # The launcher runs the same fixer on the handheld for mods copied straight from Steam.
@@ -183,7 +183,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("workshop", help="steamapps/workshop/content/331470 (one folder per mod)")
     ap.add_argument("--ids", help="comma-separated Workshop ids to import (default: every folder)")
-    ap.add_argument("--out", default=DEFAULT_OUT, help="output folder (default: port/everlastingsummer/workshop)")
+    ap.add_argument("--out", default=DEFAULT_OUT, help="output folder (default: everlastingsummer/workshop next to this tool)")
     ap.add_argument("--shrink", type=float, default=3, help="image downscale factor, 0 to keep originals (default 3)")
     ap.add_argument("--video-height", type=int, default=360, help="re-encode taller videos to this height, 0 to keep (default 360)")
     ap.add_argument("--force", action="store_true", help="re-import mods that are already in --out")

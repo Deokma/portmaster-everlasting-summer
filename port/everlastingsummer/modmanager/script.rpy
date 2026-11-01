@@ -16,7 +16,7 @@ define _game_menu_screen = None
 define PAGE_SIZE = 9
 
 style default:
-    font "DejaVuSans.ttf"
+    font "font.ttf"
     size 18
     color "#e8e8e8"
 

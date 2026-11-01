@@ -13,7 +13,7 @@ caches and, unless asked, your saves), then optionally:
 
 Needs Python 3.8+ and Pillow; the video step needs ffmpeg on PATH.
 
-    python tools/prepare_gamefiles.py "E:/SteamLibrary/steamapps/common/Everlasting Summer"
+    python everlastingsummer/tools/prepare_gamefiles.py "E:/SteamLibrary/steamapps/common/Everlasting Summer"
 """
 
 import argparse
@@ -30,7 +30,7 @@ import zlib
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_OUT = os.path.join(HERE, "..", "port", "everlastingsummer", "game")
+DEFAULT_OUT = os.path.join(HERE, "..", "game")
 
 # Top-level folders of game/ that never go to the handheld.
 SKIP_DIRS = {"mods", "cache"}
@@ -201,7 +201,7 @@ def copy_tree(src_game, out, with_saves, skip_files, languages):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("install", help="Everlasting Summer install folder (the one holding game/)")
-    ap.add_argument("--out", default=DEFAULT_OUT, help="output game folder (default: port/everlastingsummer/game)")
+    ap.add_argument("--out", default=DEFAULT_OUT, help="output game folder (default: everlastingsummer/game next to this tool)")
     ap.add_argument("--shrink", type=float, default=3, help="image downscale factor, 0 to keep originals (default 3)")
     ap.add_argument("--video-height", type=int, default=360, help="opening video height, 0 to keep original (default 360)")
     ap.add_argument("--languages", default="all",

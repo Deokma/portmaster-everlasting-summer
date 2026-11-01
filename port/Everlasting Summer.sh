@@ -17,6 +17,22 @@ source $controlfolder/control.txt
 [ -f "${controlfolder}/mod_${CFW_NAME}.txt" ] && source "${controlfolder}/mod_${CFW_NAME}.txt"
 get_controls
 
+# Settings: edit here, or set them in the environment.
+
+# Translated dialogue to load besides the original Russian: any of chinese english
+# french german italian portuguese spanish turkish, or "all". Each one costs about 6 s
+# of startup and 40 MB of RAM on a 1 GB handheld.
+export ES_LANGUAGES="${ES_LANGUAGES:-english}"
+# Screen shape: stretch (fills the screen, picture 33% taller), fit (black bars),
+# zoom (fills the screen, sides cut off).
+export ES_ASPECT="${ES_ASPECT:-stretch}"
+# Text size multiplier: 1.0 is the PC size, about 7px tall on a 640x480 screen.
+export ES_TEXT_SCALE="${ES_TEXT_SCALE:-1.5}"
+# Mouse cursor size (1.5 = about 20px tall); 0 uses the hardware cursor.
+export ES_CURSOR_SCALE="${ES_CURSOR_SCALE:-1.5}"
+# gles2 renders on the GPU; sw is the runtime's own default, the software renderer.
+export ES_RENDERER="${ES_RENDERER:-gles2}"
+
 # Variables
 GAMEDIR="/$directory/ports/everlastingsummer"
 runtime="renpy_8.3.4"
@@ -33,7 +49,7 @@ cd "$GAMEDIR"
 > "$GAMEDIR/log.txt" && exec > >(tee "$GAMEDIR/log.txt") 2>&1
 
 if [ ! -f "$GAMEDIR/game/archive.rpa" ]; then
-  pm_message "Game files missing: copy Everlasting Summer's game folder contents into ports/everlastingsummer/game."
+  pm_message "Game files missing: copy everything in Everlasting Summer's game folder (except mods, cache, saves) into ports/everlastingsummer/game. See everlastingsummer/README.md."
   sleep 5
   exit 1
 fi
@@ -52,13 +68,33 @@ fi
 mkdir -p "$workshop"
 
 if [ "$ES_APP" = "mods" ]; then
-  # The runtime ships no fonts; the manager borrows the one the game build includes.
-  [ -f "$gamefiles/DejaVuSans.ttf" ] || cp -f "$GAMEDIR/game/DejaVuSans.ttf" "$gamefiles/" 2>/dev/null
+  # The runtime ships no fonts; the manager borrows one of the game's.
+  if [ ! -f "$gamefiles/font.ttf" ]; then
+    for font in "$GAMEDIR/game/fonts/calibri.ttf" "$GAMEDIR/game/DejaVuSans.ttf" "$GAMEDIR"/game/fonts/*.ttf; do
+      [ -f "$font" ] && cp -f "$font" "$gamefiles/font.ttf" && break
+    done
+  fi
   export ES_WORKSHOP="$workshop"
 else
   # The game ships for Ren'Py 7.4 (Python 2); this file adapts it to the Ren'Py 8 runtime.
   cmp -s "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy" || \
     cp -f "$GAMEDIR/patches/zz_portmaster.rpy" "$gamefiles/zz_portmaster.rpy"
+
+  # Ren'Py loads every language's dialogue at startup. Dialogue for languages not in
+  # ES_LANGUAGES moves to tl_parked/, and back once they're listed again.
+  for dir in "$gamefiles"/tl/*/scenario "$GAMEDIR"/tl_parked/*/scenario; do
+    [ -d "$dir" ] || continue
+    lang="$(basename "$(dirname "$dir")")"
+    case " $ES_LANGUAGES " in
+      *" all "*|*" $lang "*) keep=1 ;;
+      *) keep=0 ;;
+    esac
+    if [ $keep = 1 ] && [ "$dir" = "$GAMEDIR/tl_parked/$lang/scenario" ]; then
+      mkdir -p "$gamefiles/tl/$lang" && mv "$dir" "$gamefiles/tl/$lang/"
+    elif [ $keep = 0 ] && [ "$dir" = "$gamefiles/tl/$lang/scenario" ]; then
+      mkdir -p "$GAMEDIR/tl_parked/$lang" && mv "$dir" "$GAMEDIR/tl_parked/$lang/"
+    fi
+  done
 
   # Workshop mods: every folder dropped into workshop/ (a copy of a Steam
   # steamapps/workshop/content/331470/<id> folder) becomes an extra game root, the way
@@ -100,12 +136,6 @@ sleep 2
 $ESUDO mount --bind "$gamefiles" "$renpydir/game"
 
 # Exports
-# Text size multiplier: 1.0 is the PC size, which is about 7px tall on a 640x480 screen.
-export ES_TEXT_SCALE="${ES_TEXT_SCALE:-1.5}"
-# Software mouse cursor size (1.5 = about 20px tall); 0 uses the hardware cursor.
-export ES_CURSOR_SCALE="${ES_CURSOR_SCALE:-1.5}"
-# gles2 renders on the GPU; sw is the runtime's default software renderer.
-export ES_RENDERER="${ES_RENDERER:-gles2}"
 export RENPY_RENDERER="$ES_RENDERER"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 # Ren'Py's base folder is the read-only runtime, so send its log.txt / traceback.txt here.
