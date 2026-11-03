@@ -1,4 +1,4 @@
-# EverPort: Everlasting Summer for PortMaster
+# Everlasting Summer for PortMaster
 
 Plays the Steam release of [Everlasting Summer](https://store.steampowered.com/app/331470/) (Бесконечное лето, Soviet Games) on Linux handhelds through [PortMaster](https://portmaster.games/), including Steam Workshop mods. Built and tested on an Anbernic RG40XX H (640x480, 1 GB RAM, Knulli).
 
