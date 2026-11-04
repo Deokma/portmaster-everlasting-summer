@@ -14,8 +14,8 @@
     ],
     "desc": "A visual novel about a week in a Soviet pioneer camp. Plays the Steam release with Workshop mod support.",
     "desc_md": null,
-    "inst": "Get the game for free on Steam. Copy everything inside its game folder except mods, cache and saves into ports/everlastingsummer/game. Steam Workshop mod folders go in ports/everlastingsummer/workshop.",
-    "inst_md": "Get the game for free on [Steam](https://store.steampowered.com/app/331470/). Copy everything inside its `game` folder except `mods`, `cache` and `saves` into `ports/everlastingsummer/game/`. Optional: `everlastingsummer/tools/prepare_gamefiles.py` on a PC shrinks it for 640x480 handhelds. Steam Workshop mod folders go in `ports/everlastingsummer/workshop/`.",
+    "inst": "Get the game for free on Steam. Copy everything inside its game folder except mods, cache and saves into ports/everlastingsummer/game. The first start prepares it for your screen, once (about 8 minutes). Steam Workshop mod folders go in ports/everlastingsummer/workshop.",
+    "inst_md": "Get the game for free on [Steam](https://store.steampowered.com/app/331470/). Copy everything inside its `game` folder except `mods`, `cache` and `saves` into `ports/everlastingsummer/game/`. The first start prepares it for your screen, once (about 8 minutes). Steam Workshop mod folders go in `ports/everlastingsummer/workshop/`.",
     "genres": [
       "visual novel"
     ],

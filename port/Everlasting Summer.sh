@@ -32,6 +32,9 @@ export ES_TEXT_SCALE="${ES_TEXT_SCALE:-1.5}"
 export ES_CURSOR_SCALE="${ES_CURSOR_SCALE:-1.5}"
 # gles2 renders on the GPU; sw is the runtime's own default, the software renderer.
 export ES_RENDERER="${ES_RENDERER:-gles2}"
+# On the first start, the game's 1080p images are shrunk once for this screen: auto fits
+# the screen height (2.25 on 480p), 1 keeps them full size. See patches/build_game.py.
+export ES_SHRINK="${ES_SHRINK:-auto}"
 
 # Variables
 GAMEDIR="/$directory/ports/everlastingsummer"
@@ -122,11 +125,6 @@ else
   [ -d "$gamefiles/mods" ] && moddirs+=("$gamefiles/mods")
 fi
 
-# Savedata setup: the game keeps saves in game/saves, Ren'Py 8 keeps save tokens in ~/.renpy
-mkdir -p "$GAMEDIR/conf"
-export XDG_DATA_HOME="$GAMEDIR/conf"
-bind_directories ~/.renpy/ "$GAMEDIR/conf/"
-
 # Mounting Ren'Py and gamefiles
 $ESUDO mkdir -p "$renpydir"
 $ESUDO umount "$renpydir/game" 2>/dev/null || true
@@ -134,6 +132,28 @@ $ESUDO umount "$renpydir" 2>/dev/null || true
 $ESUDO mount "$renpy_runtime" "$renpydir"
 sleep 2
 $ESUDO mount --bind "$gamefiles" "$renpydir/game"
+
+# First start with the game folder copied from Steam: shrink it for this screen, keep a
+# full-size cursor, re-encode the video and drop the Windows mod uploader. Once.
+# (Before the exports below: PortMaster's message dialog runs on the system Python and
+# finds its theme through XDG_DATA_HOME.)
+if [ "$ES_APP" != "mods" ] && [ ! -f "$gamefiles/portmaster_build.txt" ]; then
+  shrink="$ES_SHRINK"
+  [ "$shrink" = "auto" ] && shrink=$(awk -v h="${DISPLAY_HEIGHT:-480}" 'BEGIN { f = 1080 / h; printf "%.2f", (f < 1 ? 1 : f) }')
+  # Knulli's battery saver would suspend the handheld halfway through.
+  pause="/var/run/battery-saver/everlastingsummer-build.pause"
+  [ -d "$(dirname "$pause")" ] && touch "$pause"
+  pm_message "Preparing Everlasting Summer for this screen. This takes a few minutes, once."
+  "$renpydir/lib/py3-linux-aarch64/python" "$GAMEDIR/patches/build_game.py" "$gamefiles" "$shrink" "${DISPLAY_HEIGHT:-480}" 2>&1 |
+    while read -r line; do pm_message "$line"; done
+  rm -f "$pause"
+  pm_message_end
+fi
+
+# Savedata setup: the game keeps saves in game/saves, Ren'Py 8 keeps save tokens in ~/.renpy
+mkdir -p "$GAMEDIR/conf"
+export XDG_DATA_HOME="$GAMEDIR/conf"
+bind_directories ~/.renpy/ "$GAMEDIR/conf/"
 
 # Exports
 export RENPY_RENDERER="$ES_RENDERER"

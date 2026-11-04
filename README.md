@@ -2,16 +2,16 @@
 
 Plays the Steam release of [Everlasting Summer](https://store.steampowered.com/app/331470/) (Бесконечное лето, Soviet Games) on Linux handhelds through [PortMaster](https://portmaster.games/), including Steam Workshop mods. Built and tested on an Anbernic RG40XX H (640x480, 1 GB RAM, Knulli).
 
-![Everlasting Summer](port/everlastingsummer/cover.jpg)
+![Everlasting Summer](port/everlastingsummer/cover.png)
 
 The game is not included. You add your own copy, which is free on Steam.
 
 ## Install
 
 1. Install PortMaster on the handheld and open it once.
-2. Download `everlastingsummer.zip` from [Releases](../../releases) and unzip it into your ports folder (Knulli: `/userdata/roms/ports/`, ROCKNIX: `/roms/ports/`).
+2. Download `everlastingsummer.zip` from [Releases](../../releases) and put it, still zipped, in PortMaster's `autoinstall` folder (Knulli: `/userdata/system/.local/share/PortMaster/autoinstall/`), then open PortMaster. It installs the port and its Ports cover.
 3. Copy everything inside the Steam install's `game` folder, except `mods`, `cache` and `saves`, into `ports/everlastingsummer/game/`.
-4. Start "Everlasting Summer" from Ports. PortMaster fetches the Ren'Py 8.3.4 runtime the first time.
+4. Start "Everlasting Summer" from Ports. PortMaster fetches the Ren'Py 8.3.4 runtime, and the port prepares the game for the screen, once (about 8 minutes).
 
 Full player instructions, settings, controls and mod support: [port/everlastingsummer/README.md](port/everlastingsummer/README.md).
 
@@ -22,7 +22,7 @@ Full player instructions, settings, controls and mod support: [port/everlastings
 - Both sticks move a mouse cursor the game draws itself; L1 / R1 page through scrolling lists.
 - Loads only the translations you choose, so it fits in 1 GB of RAM.
 - Steam Workshop mods: drop a mod folder in and it works, Ren'Py 7 code included; an on-device mod manager switches mods off or deletes them.
-- Optional PC tools shrink the game and mods to the handheld's resolution.
+- The first start shrinks the game's 1080p images to the screen's size and re-encodes the video on the handheld itself; optional PC tools do the same faster, for mods too.
 
 ## Repository layout
 
@@ -33,11 +33,12 @@ Full player instructions, settings, controls and mod support: [port/everlastings
 | `port/Everlasting Summer.sh` | Launcher: settings, language and mod setup, mounts the runtime, starts gptokeyb and Ren'Py |
 | `port/Everlasting Summer - Mod manager.sh` | Starts the mod manager (`ES_APP=mods`) |
 | `port/everlastingsummer/patches/zz_portmaster.rpy` | Compatibility and handheld layer, copied into `game/` on every start |
+| `port/everlastingsummer/patches/build_game.py` | First-start build on the handheld: shrinks the images, re-encodes the video, removes the Windows mod uploader |
 | `port/everlastingsummer/patches/fix_mods.py` | Fixes Ren'Py 7 syntax in mod scripts; the launcher runs it with the runtime's Python |
 | `port/everlastingsummer/modmanager/script.rpy` | The mod manager, a small Ren'Py app on the same runtime |
 | `port/everlastingsummer/everlastingsummer.gptk` | gptokeyb button mapping |
 | `port/everlastingsummer/tools/` | `prepare_gamefiles.py` and `prepare_mods.py`, the optional PC tools |
-| `port/everlastingsummer/port.json`, `gameinfo.xml`, `cover.jpg`, `screenshot.png` | PortMaster metadata |
+| `port/everlastingsummer/port.json`, `gameinfo.xml`, `cover.png`, `screenshot.png` | PortMaster metadata |
 | `port/everlastingsummer/game/`, `workshop/` | The player's game files and mods (ignored by git) |
 | `scripts/build_release.py` | Builds `dist/everlastingsummer.zip` from `port/`, without game files |
 
@@ -75,9 +76,13 @@ PortMaster ships Ren'Py 8 runtimes only. Ren'Py 8.3.4 loads the game's Ren'Py 7 
 - Memory: Ren'Py loads every language's dialogue at startup (38 of the 44 MB of compiled script). The launcher moves translations not in `ES_LANGUAGES` to `tl_parked/`. On the RG40XX H, Russian only takes 368 MB and 11 s to load; all eight take 699 MB and 54 s.
 - The game asks for a 1000-step rollback and desktop cache sizes; the port uses Ren'Py's defaults and a smaller image cache.
 
-### Shrunk assets (optional)
+### Shrunk assets
 
-`prepare_gamefiles.py` rebuilds `archive.rpa` with every image downscaled 3x (437 MB to 45 MB) and writes `portmaster_shrink.txt`. The patch gives the listed images a fractional oversample, so they keep their 1920x1080-layout size on screen, and rounds Ren'Py's `im.Composite`, `im.Crop`, `im.Scale` and the game's own `VerticalCrop`, which assume whole-number oversample. It also re-encodes the opening video at 360p and can drop translations (`--languages`).
+On the first start, the launcher runs `build_game.py` with the runtime's own Python 3.12 and `pygame_sdl2`. It rebuilds `archive.rpa` with every image downscaled to the screen height (2.25x on 480p, `ES_SHRINK`; 749 MB to 385 MB, about 3 minutes on the H700's four cores, one forked process each since the runtime has no `multiprocessing`) and writes `portmaster_shrink.txt`. It re-encodes the opening video to 360p Theora with the system's ffmpeg when there is one (about 4 minutes), keeps a full-size copy of the cursor, and deletes Soviet Games' Windows mod uploader from `game/mods`. Progress goes to PortMaster's message dialog, which runs before the launcher exports `PYTHONHOME`, since the dialog itself runs on the system Python. Knulli's battery saver is paused meanwhile; it would suspend the handheld after 15 idle minutes. `portmaster_build.txt` marks it done.
+
+The patch gives the listed images a fractional oversample, so they keep their 1920x1080-layout size on screen, and rounds Ren'Py's `im.Composite`, `im.Crop`, `im.Scale` and the game's own `VerticalCrop`, which assume whole-number oversample.
+
+`prepare_gamefiles.py` does the same on a PC with Pillow, at 3x (437 MB of images to 45 MB), and can drop translations (`--languages`). The handheld then only writes its stamp.
 
 ### Workshop mods
 
@@ -91,13 +96,14 @@ The mod manager runs on the same runtime with `ES_APP=mods`. It reads a mod's ti
 
 On PC with the Ren'Py 8.3.4 SDK: all compiled scripts load; every defined image loads, and the shrunk build's on-screen sizes match the originals within 2px across 2,592 surfaces; menus, dialogue, the opening video and PC saves work. 14 of 16 Workshop mods tried start and play their opening; "7 Дней Лета: Lost Alpha" needs more RAM than 1 GB and compares `None >= 1`, which Python 3 rejects.
 
-On the RG40XX H (Knulli gladiator-ii): GL rendering, full screen, cursor on both sticks, list paging, drop-in mods from a raw Steam folder, the mod manager and its hand-off to the game.
+On the RG40XX H (Knulli gladiator-ii): GL rendering, full screen, cursor on both sticks, list paging, drop-in mods from a raw Steam folder, the mod manager and its hand-off to the game, the first-start build from a raw Steam folder (all 1,535 images shrunk, the dialog shown and closed before the game), and installing the zip with `harbourmaster install` over an existing install (game files kept, cover added to EmulationStation).
 
 Install paths compared on the RG40XX H, English kept:
 
 | Game folder | First start | Later starts | RAM in play (peak) |
 |--|--|--|--|
-| Copied straight from Steam | 75 s | 42 s | about 590 MB (650 MB) |
+| Copied straight from Steam, without the build | 75 s | 42 s | about 590 MB (650 MB) |
+| Copied straight from Steam, built on the handheld | about 8 min | | about 455 MB |
 | Built with `prepare_gamefiles.py` | | 39 s | about 455 MB with two small mods |
 
 ## License

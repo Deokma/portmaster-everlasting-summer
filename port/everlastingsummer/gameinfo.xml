@@ -8,8 +8,7 @@
     <developer>Soviet Games</developer>
     <publisher>Soviet Games</publisher>
     <genre>Visual Novel</genre>
-    <image>./everlastingsummer/screenshot.png</image>
-    <thumbnail>./everlastingsummer/cover.jpg</thumbnail>
+    <image>./everlastingsummer/cover.png</image>
   </game>
   <game>
     <path>./Everlasting Summer - Mod manager.sh</path>
@@ -18,6 +17,6 @@
     <developer>Soviet Games</developer>
     <publisher>Soviet Games</publisher>
     <genre>Visual Novel</genre>
-    <thumbnail>./everlastingsummer/cover.jpg</thumbnail>
+    <image>./everlastingsummer/cover.png</image>
   </game>
 </gameList>
